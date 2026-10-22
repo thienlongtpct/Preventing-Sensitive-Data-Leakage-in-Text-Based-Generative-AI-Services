@@ -1,0 +1,35 @@
+[project]
+name = "privacy-gateway"
+version = "0.1.0"
+description = "Privacy gateway for simulated text-based generative AI services"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+detectors = [
+    "presidio-analyzer>=2.2",
+    "spacy>=3.7",
+]
+privacy = [
+    "diffprivlib>=0.6",
+    "tenseal>=0.3",
+]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+privacy-gateway = "privacy_gateway.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

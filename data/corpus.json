@@ -1,0 +1,12 @@
+[
+  {
+    "id": "PUB-HOURS",
+    "sensitivity": "public",
+    "text": "The office opens at 9am and closes at 5pm on weekdays."
+  },
+  {
+    "id": "E-1001",
+    "sensitivity": "restricted",
+    "text": "Employee E-1001 works in research. Compensation is 185000 USD. Contact: ada.example@example.com"
+  }
+]
