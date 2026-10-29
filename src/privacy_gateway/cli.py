@@ -1,5 +1,6 @@
 import argparse
 import json
+from pathlib import Path
 
 from privacy_gateway import __version__
 from privacy_gateway.evaluation.runner import format_report, load_cases, run_evaluation
@@ -24,7 +25,12 @@ def main(argv: list[str] | None = None) -> int:
     check.add_argument("--unprotected", action="store_true")
     check.add_argument("--json", action="store_true")
 
-    subparsers.add_parser("evaluate", help="Compare protected and unprotected runs on labeled cases")
+    evaluate = subparsers.add_parser(
+        "evaluate", help="Compare protected and unprotected runs on labeled cases"
+    )
+    evaluate.add_argument("--cases", type=Path, help="Use a custom labeled JSONL dataset")
+    evaluate.add_argument("--json", action="store_true", help="Print the full report as JSON")
+    evaluate.add_argument("--output", type=Path, help="Save the full JSON report to this file")
     subparsers.add_parser("report", help="Differentially private audit report and encrypted risk sum")
 
     args = parser.parse_args(argv)
@@ -33,7 +39,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "check":
         return _check(args)
     if args.command == "evaluate":
-        return _evaluate()
+        return _evaluate(args)
     if args.command == "report":
         return _report()
     parser.error(f"Unknown command {args.command}")
@@ -72,11 +78,15 @@ def _check(args: argparse.Namespace) -> int:
     return 0
 
 
-def _evaluate() -> int:
+def _evaluate(args: argparse.Namespace) -> int:
     gateway = build_gateway()
     config = load_config()
-    report = run_evaluation(gateway, load_cases(), epsilon=float(config.get("epsilon", 1.0)))
-    print(format_report(report))
+    report = run_evaluation(gateway, load_cases(args.cases), epsilon=float(config.get("epsilon", 1.0)))
+    serialized = json.dumps(report, indent=2, allow_nan=False)
+    if args.output is not None:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(serialized + "\n", encoding="utf-8")
+    print(serialized if args.json else format_report(report))
     return 0
 
 
