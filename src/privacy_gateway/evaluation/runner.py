@@ -34,6 +34,8 @@ def run_evaluation(gateway: PrivacyGateway, cases: list[dict], epsilon: float = 
                 {
                     "id": case["id"],
                     "mode": mode,
+                    "role": case["role"],
+                    "service": case["service"],
                     "leakage_type": case.get("leakage_type", "none"),
                     "action": result.action,
                     "detected": result.sensitive,
@@ -117,6 +119,8 @@ def _mode_summary(rows: list[dict], mode: str) -> dict:
     benign = [row for row in subset if not row["expect_sensitive"]]
     return {
         "cases": len(subset),
+        "attack_cases": len(attacks),
+        "benign_cases": len(benign),
         "attack_success": (sum(row["attack_success"] for row in attacks) / len(attacks)) if attacks else 0.0,
         "utility": (sum(row["utility_ok"] for row in benign) / len(benign)) if benign else 0.0,
         "mean_latency_ms": (sum(row["latency_ms"] for row in subset) / len(subset)) if subset else 0.0,

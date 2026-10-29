@@ -47,6 +47,16 @@ python -m privacy_gateway report
 
 `evaluate` prints precision, recall, F1, false-positive rate, attack success, benign utility, and latency for the protected and unprotected configurations. Attack success means a labeled secret string was still present in the text returned to the user.
 
+Pardha Pudi's [evaluation and regression testing sample](docs/evaluation.md) documents
+the metric definitions, per-case checks, measured results, and limitations. Save a
+report or evaluate another labeled dataset with:
+
+```bash
+python -m privacy_gateway evaluate --output var/evaluation.json
+python -m privacy_gateway evaluate --cases data/cases/labeled_cases.jsonl --json
+python -m pytest tests/test_evaluation_regression.py -q
+```
+
 ## Roles
 
 | Role | Critical | High | Medium | Low |
