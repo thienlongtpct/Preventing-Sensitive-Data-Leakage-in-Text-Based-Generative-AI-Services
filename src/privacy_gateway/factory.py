@@ -10,7 +10,7 @@ from privacy_gateway.detectors.entropy import EntropyDetector
 from privacy_gateway.detectors.entities import EntityDetector, SpacyNameDetector
 from privacy_gateway.detectors.markers import MarkerDetector
 from privacy_gateway.detectors.pipeline import Pipeline
-from privacy_gateway.detectors.secrets import SecretDetector
+from privacy_gateway.detectors.structured_secrets import StructuredSecretDetector
 from privacy_gateway.gateway import PrivacyGateway
 from privacy_gateway.paths import project_root
 from privacy_gateway.policy.engine import PolicyEngine
@@ -31,7 +31,7 @@ def build_gateway(
 
     use_spacy = os.environ.get("PRIVGUARD_SPACY") == "1"
     detectors = [
-        SecretDetector(),
+        StructuredSecretDetector(),
         EntityDetector(),
         EntropyDetector(),
         HeuristicContextClassifier(),
