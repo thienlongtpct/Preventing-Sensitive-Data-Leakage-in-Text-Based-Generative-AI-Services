@@ -5,8 +5,8 @@ from pathlib import Path
 import yaml
 
 from privacy_gateway.audit.store import AuditStore
-from privacy_gateway.detectors.context import HeuristicContextClassifier
-from privacy_gateway.detectors.entropy import EntropyDetector
+from privacy_gateway.detectors.intent_context import IntentContextClassifier
+from privacy_gateway.detectors.contextual_entropy import ContextualEntropyDetector
 from privacy_gateway.detectors.entities import EntityDetector, SpacyNameDetector
 from privacy_gateway.detectors.markers import MarkerDetector
 from privacy_gateway.detectors.pipeline import Pipeline
@@ -33,8 +33,8 @@ def build_gateway(
     detectors = [
         StructuredSecretDetector(),
         EntityDetector(),
-        EntropyDetector(),
-        HeuristicContextClassifier(),
+        ContextualEntropyDetector(),
+        IntentContextClassifier(),
         MarkerDetector(config.get("markers", {})),
         SpacyNameDetector(enabled=use_spacy),
     ]

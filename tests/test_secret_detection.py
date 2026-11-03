@@ -164,3 +164,48 @@ def test_private_key_still_blocks_stricter_roles(gateway, role):
     result = gateway.handle(Request("-----BEGIN PRIVATE KEY-----\nFAKEBODY", role))
     assert result.action == "block"
     assert result.output is None
+
+
+@pytest.mark.parametrize("expression", [
+    'os.getenv("PASSWORD")', "os.environ['PASSWORD']",
+    'os.environ.get("PASSWORD")', 'getenv("PASSWORD")', 'process.env.PASSWORD',
+])
+def test_complete_environment_lookup_is_not_a_literal_secret(expression, gateway):
+    text = f"password={expression}"
+    assert StructuredSecretDetector().detect(text) == []
+    assert gateway.pipeline.analyze(text) == []
+
+
+@pytest.mark.parametrize("field", ["passphrase", "pwd", "DB_PASSWORD", "aws_secret_access_key"])
+def test_additional_credential_fields_protect_weak_values(field):
+    text = f'{field}="weak synthetic value"'
+    found = StructuredSecretDetector().detect(text)
+    assert len(found) == 1
+    assert text[found[0].start:found[0].end] == "weak synthetic value"
+
+
+@pytest.mark.parametrize("value", [
+    "ghp_" + "AbCdEfGhIjKlMnOpQrStUvWxYz0123456789",
+    "glpat-fake_AbCdEfGhIjKlMnOpQrStUvWxYz",
+])
+def test_recognizable_source_control_tokens_are_independent_of_context(value, gateway):
+    text = f"checksum example: {value}"
+    found = StructuredSecretDetector().detect(text)
+    assert len(found) == 1
+    assert text[found[0].start:found[0].end] == value
+    assert gateway.handle(Request(text, "guest")).action == "block"
+
+
+@pytest.mark.parametrize("rhs", [
+    '"fake first" + "fake suffix"', 'os.getenv("PASSWORD", "fake default")',
+    'os.getenv("PASSWORD") + "fake suffix"',
+    '"""fake first\nfake second"""', "'''fake first\nfake second'''",
+    '|\n  fake first\n  fake second',
+])
+def test_multiline_and_composed_credentials_do_not_leak_suffixes(rhs, gateway):
+    text = f"Public introduction.\npassword={rhs}\nPublic conclusion."
+    result = gateway.handle(Request(text, "admin"))
+    assert result.action == "redact"
+    assert "fake" not in result.output
+    assert "Public introduction." in result.output
+    assert "Public conclusion." in result.output

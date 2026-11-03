@@ -7,6 +7,8 @@ from privacy_gateway.schemas import Finding
 STRUCTURED_PATTERNS: list[tuple[re.Pattern[str], str, float]] = [
     (re.compile(r"(?<![\w-])sk-[A-Za-z0-9_-]{16,}(?![\w-])"), "api_key", 0.99),
     (re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"), "aws_access_key", 0.99),
+    (re.compile(r"(?<![\w-])gh[pousr]_[A-Za-z0-9]{36}(?!\w)"), "github_token", 0.99),
+    (re.compile(r"(?<![\w-])glpat-[A-Za-z0-9_-]{20,}(?![\w-])"), "gitlab_token", 0.99),
 ]
 
 # Only these recognizers are refined. Other findings from the original detector,
@@ -29,10 +31,13 @@ ASSIGNED_SECRET = re.compile(
     r'''(?ixm)
     (?<![\w-])(?P<quote>["']?)
     (?:api[_-]?key|client[_-]?secret|secret[_-]?key|secret|
-       access[_-]?token|auth[_-]?token|refresh[_-]?token|password|passwd)
+       access[_-]?token|auth[_-]?token|refresh[_-]?token|password|passwd|passphrase|pwd|
+       (?:db|database)[_-]?(?:password|passwd|pass)|aws[_-]?secret[_-]?access[_-]?key)
     (?P=quote)(?![\w-])[ \t]*[:=][ \t]*
     (?:
-        "(?P<double>(?:\\[^\r\n]|[^"\\\r\n])*)(?:"|(?=\r?$))
+        "{3}(?P<multi_double>[\s\S]*?)(?:"{3}|\Z)
+        |'{3}(?P<multi_single>[\s\S]*?)(?:'{3}|\Z)
+        |"(?P<double>(?:\\[^\r\n]|[^"\\\r\n])*)(?:"|(?=\r?$))
         |'(?P<single>(?:\\[^\r\n]|[^'\\\r\n])*)(?:'|(?=\r?$))
         |(?P<bare>(?:\$\{[^}\s]*\}|\[(?:REDACTED|TOKEN):[^\]\s]+\]|[^\s,;}\]"'])+)
     )
@@ -40,6 +45,15 @@ ASSIGNED_SECRET = re.compile(
 )
 NON_LITERAL = re.compile(
     r"(?:\$\{[A-Za-z_][A-Za-z0-9_]*\}|\[(?:REDACTED:[a-z_]+|TOKEN:[a-z_]+:[0-9a-f]{8})\])"
+)
+# Recognize only complete, common environment lookups, not arbitrary Python/JS.
+# A literal suffix or concatenation prevents the exemption.
+ENVIRONMENT_LOOKUP = re.compile(
+    r'''(?x)(?:
+        (?:os\.(?:getenv|environ\.get)|getenv)\([ \t]*["'][A-Za-z_][A-Za-z0-9_]*["'][ \t]*\)
+        |os\.environ\[[ \t]*["'][A-Za-z_][A-Za-z0-9_]*["'][ \t]*\]
+        |process\.env\.[A-Za-z_][A-Za-z0-9_]*
+    )[ \t]*(?=$|[,;}\]\r\n])'''
 )
 
 
@@ -93,14 +107,36 @@ def _private_key_findings(text: str) -> list[Finding]:
 def _assignment_findings(text: str) -> list[Finding]:
     findings: list[Finding] = []
     for match in ASSIGNED_SECRET.finditer(text):
-        group = next(name for name in ("double", "single", "bare") if match.group(name) is not None)
+        group = next(
+            name for name in ("multi_double", "multi_single", "double", "single", "bare")
+            if match.group(name) is not None
+        )
         value = match.group(group)
         if not value or NON_LITERAL.fullmatch(value):
             continue
+        if group == "bare" and ENVIRONMENT_LOOKUP.match(text, match.start(group)):
+            continue
         if group == "bare" and value.lower() in {"null", "none"}:
             continue
+        start, end = match.span(group)
+        # Literal concatenations/defaults must not leave a suffix visible after
+        # transforming only the first token. Conservatively cover this RHS line.
+        tail = text[match.end():].lstrip(" \t")
+        expression = group == "bare" and re.match(r"(?:os\.|getenv\(|process\.env\.)", value)
+        if expression or (group in {"double", "single"} and tail.startswith("+")):
+            end = re.search(r"[\r\n;]|\Z", text[match.end():]).start() + match.end()
+        if group == "bare" and value in {"|", "|-", "|+", ">", ">-", ">+"}:
+            line_start = text.rfind("\n", 0, match.start()) + 1
+            indent = len(text[line_start:]) - len(text[line_start:].lstrip(" \t"))
+            for line in re.finditer(r"[^\n]*(?:\n|$)", text[match.end():]):
+                content = line.group().rstrip("\r\n")
+                if not content.strip():
+                    continue
+                if len(content) - len(content.lstrip(" \t")) <= indent:
+                    break
+                end = match.end() + line.start() + len(content)
         findings.append(
-            Finding("secret", "secrets:assigned_secret", *match.span(group), "critical", 0.95)
+            Finding("secret", "secrets:assigned_secret", start, end, "critical", 0.95)
         )
     return findings
 
