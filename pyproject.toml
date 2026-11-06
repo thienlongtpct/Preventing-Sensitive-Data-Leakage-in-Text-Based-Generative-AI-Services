@@ -5,7 +5,9 @@ description = "Privacy gateway for simulated text-based generative AI services"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "presidio>=2.2.366",
     "PyYAML>=6.0",
+    "spacy>=3.8.18",
 ]
 
 [project.optional-dependencies]
@@ -33,3 +35,8 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.17.3",
+]
