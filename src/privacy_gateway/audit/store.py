@@ -1,3 +1,5 @@
+"""Hash-chained, append-only audit log of sanitized gateway events."""
+
 import hashlib
 import hmac
 import json
@@ -32,6 +34,8 @@ KEY_ENV = "PRIVGUARD_AUDIT_KEY"
 
 @dataclass(frozen=True)
 class ChainCheck:
+    """Result of AuditStore.verify. On failure, first_bad is the 1-based position of the event that broke the chain."""
+
     ok: bool
     events: int
     keyed: bool
@@ -92,6 +96,7 @@ class AuditStore:
         return int(event.get("seq", 0)), str(event.get("hash", GENESIS))
 
     def verify(self, anchor: tuple[int, str] | None = None) -> ChainCheck:
+        """Check every link in the chain, and the anchor from head() if one is given."""
         prev_hash = GENESIS
         count = 0
         lines = self.path.read_text(encoding="utf-8").splitlines() if self.path.exists() else []

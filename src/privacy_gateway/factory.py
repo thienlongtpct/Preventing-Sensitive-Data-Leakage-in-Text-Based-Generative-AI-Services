@@ -1,3 +1,5 @@
+"""Build a fully wired PrivacyGateway from config/policy.yaml and the synthetic data files."""
+
 import json
 import os
 from pathlib import Path
@@ -25,6 +27,13 @@ def build_gateway(
     protected: bool = True,
     follow_injected_instructions: bool = False,
 ) -> PrivacyGateway:
+    """Create a gateway with the default detector stack.
+
+    The audit log defaults to var/audit.jsonl. The spaCy name detector runs
+    only when PRIVGUARD_SPACY=1, and it is optional, so its failure does not
+    block requests. Set `follow_injected_instructions` to make the simulated
+    model obey instructions planted in retrieved context, for injection tests.
+    """
     root = root or project_root()
     config = yaml.safe_load((root / "config" / "policy.yaml").read_text(encoding="utf-8"))
     corpus = json.loads((root / "data" / "corpus.json").read_text(encoding="utf-8"))
@@ -58,5 +67,6 @@ def build_gateway(
 
 
 def load_config(root: Path | None = None) -> dict:
+    """Load config/policy.yaml as a dict."""
     root = root or project_root()
     return yaml.safe_load((root / "config" / "policy.yaml").read_text(encoding="utf-8"))

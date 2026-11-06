@@ -1,3 +1,5 @@
+"""Apply policy actions to text: compare action strength and rewrite flagged spans."""
+
 import hashlib
 import hmac
 
@@ -5,6 +7,7 @@ from privacy_gateway.schemas import ACTION_RANK, Finding
 
 
 def stronger_action(left: str, right: str) -> str:
+    """Return the more restrictive of two actions (allow < warn < redact < tokenize < block)."""
     return left if ACTION_RANK[left] >= ACTION_RANK[right] else right
 
 
@@ -13,7 +16,11 @@ def apply_transforms(
     annotated: list[tuple[Finding, str]],
     token_key: str,
 ) -> str:
-    """Replace spans marked redact or tokenize. Spans must not overlap."""
+    """Replace spans marked redact or tokenize. Spans must not overlap.
+
+    A tokenized value becomes a short HMAC of the raw text, so the same value
+    always maps to the same token without showing the original.
+    """
     replacements: list[tuple[int, int, str]] = []
     for finding, action in annotated:
         if action not in {"redact", "tokenize"}:
