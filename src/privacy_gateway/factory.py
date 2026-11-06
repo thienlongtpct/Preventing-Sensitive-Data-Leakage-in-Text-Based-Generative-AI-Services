@@ -23,6 +23,7 @@ def build_gateway(
     root: Path | None = None,
     audit_path: Path | None = None,
     protected: bool = True,
+    follow_injected_instructions: bool = False,
 ) -> PrivacyGateway:
     root = root or project_root()
     config = yaml.safe_load((root / "config" / "policy.yaml").read_text(encoding="utf-8"))
@@ -43,7 +44,11 @@ def build_gateway(
         pipeline=pipeline,
         policy=PolicyEngine(config["roles"], fail_closed=bool(config.get("fail_closed", True))),
         audit=AuditStore(audit_path or (root / "var" / "audit.jsonl")),
-        llm=SimulatedLLM(config["system_prompt"], config["canary"]),
+        llm=SimulatedLLM(
+            config["system_prompt"],
+            config["canary"],
+            follow_context_instructions=follow_injected_instructions,
+        ),
         retriever=Retriever(corpus),
         tools=ToolBroker(tools),
         token_key=str(config.get("token_key", "dev-only-change-me")),

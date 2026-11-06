@@ -1081,14 +1081,12 @@ name = "privacy-gateway"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "presidio" },
     { name = "pyyaml" },
-    { name = "spacy" },
 ]
 
 [package.optional-dependencies]
 detectors = [
-    { name = "presidio-analyzer" },
+    { name = "presidio" },
     { name = "spacy" },
 ]
 dev = [
@@ -1107,12 +1105,10 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "diffprivlib", marker = "extra == 'privacy'", specifier = ">=0.6" },
-    { name = "presidio", specifier = ">=2.2.366" },
-    { name = "presidio-analyzer", marker = "extra == 'detectors'", specifier = ">=2.2" },
+    { name = "presidio", marker = "extra == 'detectors'", specifier = ">=2.2.366" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pyyaml", specifier = ">=6.0" },
-    { name = "spacy", specifier = ">=3.8.18" },
-    { name = "spacy", marker = "extra == 'detectors'", specifier = ">=3.7" },
+    { name = "spacy", marker = "extra == 'detectors'", specifier = ">=3.8.18" },
     { name = "tenseal", marker = "extra == 'privacy'", specifier = ">=0.3" },
 ]
 provides-extras = ["detectors", "privacy", "dev"]
