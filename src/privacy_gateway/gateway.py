@@ -1,3 +1,17 @@
+"""Request flow for the privacy gateway.
+
+A request moves through these stages, and any of them can stop it:
+
+1. Reject unknown services and oversized text.
+2. Scan the input and apply the role policy.
+3. Gather RAG documents or tool output and scan each item. Restricted items
+   are removed when policy blocks them.
+4. Call the simulated model and scan its output.
+5. Apply redaction or tokenization and write a sanitized audit event.
+
+A detector failure or an unknown role blocks the request (fail closed).
+"""
+
 import time
 
 from privacy_gateway.audit.store import AuditStore
@@ -38,6 +52,12 @@ class PrivacyGateway:
         self.protected = protected
 
     def handle(self, request: Request, protected: bool | None = None) -> Result:
+        """Run one request through the gateway and return the final result.
+
+        `protected` overrides the instance setting for this call. With
+        protection off, findings are still recorded but the raw model output
+        is returned, which is the unprotected baseline used in evaluation.
+        """
         started = time.perf_counter()
         enforce = self.protected if protected is None else protected
         warnings: list[str] = []

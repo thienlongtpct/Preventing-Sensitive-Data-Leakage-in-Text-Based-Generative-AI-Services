@@ -1,3 +1,5 @@
+"""Reduce gateway events to fixed-vocabulary fields before they reach the audit log."""
+
 import re
 from datetime import datetime, timezone
 
@@ -46,6 +48,7 @@ def sanitize_event(event: dict, timestamp_seconds: int = TIMESTAMP_SECONDS) -> d
 
 
 def warning_code(message: str) -> str:
+    """Map a gateway warning to a fixed code, such as warn:pii:medium, or "other"."""
     match = _WARN.match(message)
     if match:
         category, severity = match.groups()
@@ -58,6 +61,7 @@ def warning_code(message: str) -> str:
 
 
 def coarse_timestamp(value: str | None = None, seconds: int = TIMESTAMP_SECONDS) -> str:
+    """Floor an ISO timestamp (or now, if missing or invalid) to a multiple of `seconds`, in UTC."""
     moment = datetime.now(timezone.utc)
     if value:
         try:

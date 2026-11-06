@@ -1,3 +1,5 @@
+"""Role-based policy: choose an action for each finding from the caller's role."""
+
 from privacy_gateway.schemas import ACTION_RANK, CATEGORY_PRIORITY, Decision, Finding
 
 
@@ -26,4 +28,5 @@ class PolicyEngine:
 
 
 def prefer_category(left: str, right: str) -> str:
+    """Return whichever category comes first in CATEGORY_PRIORITY (secret is highest)."""
     return left if CATEGORY_PRIORITY.index(left) <= CATEGORY_PRIORITY.index(right) else right

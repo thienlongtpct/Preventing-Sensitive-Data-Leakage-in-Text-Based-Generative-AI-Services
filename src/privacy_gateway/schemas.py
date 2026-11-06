@@ -1,3 +1,5 @@
+"""Shared data types and the fixed vocabularies for severity, action, and category."""
+
 from dataclasses import dataclass, field
 
 
@@ -29,6 +31,8 @@ CATEGORY_PRIORITY = [
 
 @dataclass(frozen=True)
 class Finding:
+    """A sensitive span at text[start:end], found by one or more detectors."""
+
     category: str
     detector: str
     start: int
@@ -48,6 +52,8 @@ class Finding:
 
 @dataclass(frozen=True)
 class Request:
+    """User text, the caller's role, and the target service (chat, rag, or agent)."""
+
     text: str
     role: str
     service: str = "chat"
@@ -55,6 +61,8 @@ class Request:
 
 @dataclass
 class Decision:
+    """Policy outcome: the overall action plus the action chosen for each finding."""
+
     action: str
     annotated: list[tuple[Finding, str]] = field(default_factory=list)
     unknown_role: bool = False
@@ -62,6 +70,8 @@ class Decision:
 
 @dataclass
 class Result:
+    """What the gateway returns. `output` is None when the request was blocked."""
+
     action: str
     output: str | None
     findings: list[Finding]
